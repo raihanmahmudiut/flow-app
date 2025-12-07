@@ -14,7 +14,10 @@ A visual flow chart editor built with Vue 3, Vue Flow, and Vuetify. Create, edit
 - **Auto-Layout** - Automatic node positioning using Dagre graph layout algorithm
 - **Node Details Drawer** - Edit node properties in a slide-out panel
 - **Create New Nodes** - Add nodes via modal dialog with parent selection
+- **Undo/Redo** - Full history support with keyboard shortcuts (Ctrl+Z / Ctrl+Y)
+- **Keyboard Accessible** - Navigate and edit nodes using keyboard only
 - **Responsive Design** - Built with Vuetify's Material Design components
+- **CI/CD Pipeline** - Automated testing, linting, and builds with GitHub Actions
 
 ## Tech Stack
 
@@ -29,6 +32,8 @@ A visual flow chart editor built with Vue 3, Vue Flow, and Vuetify. Create, edit
 | [Dagre](https://github.com/dagrejs/dagre) | Graph layout algorithm |
 | [TanStack Query](https://tanstack.com/query) | Data fetching and caching |
 | [Vitest](https://vitest.dev/) | Unit testing framework |
+| [ESLint](https://eslint.org/) | Code linting |
+| [GitHub Actions](https://github.com/features/actions) | CI/CD pipeline |
 
 ## Project Structure
 
@@ -37,23 +42,30 @@ src/
 ├── components/
 │   ├── CustomNode.vue       # Custom node component for Vue Flow
 │   └── CreateNodeModal.vue  # Modal dialog for creating new nodes
+├── composables/
+│   └── useHistory.js        # Undo/redo history management
 ├── views/
 │   ├── HomeView.vue         # Main view with flow editor
 │   └── NodeDrawer.vue       # Slide-out drawer for node details
 ├── stores/
-│   └── flowStore.js         # Pinia store for nodes and edges
+│   └── flowStore.js         # Pinia store for nodes, edges, and history
 ├── utils/
 │   └── useLayout.js         # Dagre layout utility
 ├── router/
 │   └── index.js             # Vue Router configuration
 ├── tests/
 │   ├── setup.js             # Test configuration and mocks
+│   ├── composables/         # Composable tests
 │   ├── utils/               # Utility function tests
 │   ├── stores/              # Store tests
 │   └── components/          # Component tests
 ├── App.vue                  # Root component
 ├── main.js                  # Application entry point
 └── style.css                # Global styles
+
+.github/
+└── workflows/
+    └── ci.yml               # GitHub Actions CI/CD pipeline
 ```
 
 ## Getting Started
@@ -113,13 +125,14 @@ npm run test:coverage
 | Module | Tests | Coverage Areas |
 |--------|-------|----------------|
 | `useLayout.js` | 14 | Node creation, edge generation, layout coordinates, order independence |
+| `useHistory.js` | 16 | Undo/redo, state management, history limits |
 | `flowStore.js` | 12 | State management, CRUD operations, cascading deletions |
 | `CustomNode.vue` | 30 | Rendering, icons, truncation, selection states |
 | `CreateNodeModal.vue` | 13 | Form validation, submission, parent options |
 | `NodeDrawer.vue` | 12 | Route matching, conditional rendering, computed properties |
 | `HomeView.vue` | 10 | Loading states, node interactions, modal control |
 
-**Total: 91 tests**
+**Total: 107+ tests**
 
 ## Design Decisions
 
@@ -159,6 +172,24 @@ Node details are accessed via URL (`/node/:id`), enabling:
 - **CreateNodeModal** - Handles new node creation with validation
 - **NodeDrawer** - Provides detailed editing based on node type
 
+### 6. Undo/Redo with History Stack
+
+The app implements a custom history management system:
+- State snapshots are captured before each change
+- Maximum 50 history states to prevent memory issues
+- Deep copying ensures state immutability
+- Redo stack clears when new actions are taken
+
+### 7. Keyboard Accessibility
+
+Full keyboard navigation support:
+- **Tab** - Navigate between nodes
+- **Enter/Space** - Open node details
+- **Delete/Backspace** - Delete selected node
+- **Escape** - Close drawer
+- **Ctrl+Z** - Undo
+- **Ctrl+Y / Ctrl+Shift+Z** - Redo
+
 ## Node Types
 
 | Type | Icon | Description |
@@ -195,6 +226,30 @@ The app loads flow data from `/public/payload.json`. Each node follows this stru
 | `npm run test` | Run tests in watch mode |
 | `npm run test:run` | Run tests once |
 | `npm run test:coverage` | Run tests with coverage |
+| `npm run lint` | Run ESLint |
+| `npm run lint:fix` | Run ESLint with auto-fix |
+
+## CI/CD Pipeline
+
+The project includes a GitHub Actions workflow (`.github/workflows/ci.yml`) that runs on every push and pull request:
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│    Lint     │────▶│    Test     │────▶│    Build    │
+│   ESLint    │     │   Vitest    │     │    Vite     │
+└─────────────┘     └─────────────┘     └─────────────┘
+```
+
+### Pipeline Stages
+
+1. **Lint** - Runs ESLint to check code quality
+2. **Test** - Runs all unit tests with coverage report
+3. **Build** - Creates production build to verify compilation
+
+### Artifacts
+
+- **Coverage Report** - Uploaded for 30 days
+- **Build Output** - Uploaded for 7 days
 
 ## Browser Support
 

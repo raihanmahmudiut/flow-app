@@ -20,11 +20,14 @@ vi.mock('@vue-flow/core', () => ({
   VueFlow: {
     name: 'VueFlow',
     template: '<div class="vue-flow-mock"><slot /></div>',
-    props: ['nodes', 'edges', 'nodeTypes', 'defaultViewport', 'fitViewOnInit']
+    props: ['nodes', 'edges', 'nodeTypes', 'defaultViewport', 'fitViewOnInit', 'selectNodesOnDrag', 'nodesFocusable', 'edgesFocusable']
   },
   useVueFlow: vi.fn(() => ({
     fitView: vi.fn(),
-    onNodeClick: vi.fn()
+    onNodeClick: vi.fn(),
+    onNodeDragStart: vi.fn(),
+    onNodeDragStop: vi.fn(),
+    getSelectedNodes: ref([])
   })),
   Position: {
     Top: 'top',
@@ -65,6 +68,8 @@ const createMockRouter = () => {
 describe('HomeView', () => {
   let mockFitView
   let mockOnNodeClick
+  let mockOnNodeDragStart
+  let mockOnNodeDragStop
   let nodeClickCallback
 
   beforeEach(() => {
@@ -74,10 +79,15 @@ describe('HomeView', () => {
     mockOnNodeClick = vi.fn((callback) => {
       nodeClickCallback = callback
     })
+    mockOnNodeDragStart = vi.fn()
+    mockOnNodeDragStop = vi.fn()
     
     useVueFlow.mockReturnValue({
       fitView: mockFitView,
-      onNodeClick: mockOnNodeClick
+      onNodeClick: mockOnNodeClick,
+      onNodeDragStart: mockOnNodeDragStart,
+      onNodeDragStop: mockOnNodeDragStop,
+      getSelectedNodes: ref([])
     })
   })
 
@@ -170,7 +180,8 @@ describe('HomeView', () => {
       
       expect(wrapper.vm.isModalOpen).toBe(false)
       
-      const createBtn = wrapper.find('button')
+      const buttons = wrapper.findAll('button')
+      const createBtn = buttons.find(btn => btn.text().includes('Create Node'))
       await createBtn.trigger('click')
       
       expect(wrapper.vm.isModalOpen).toBe(true)
