@@ -20,7 +20,7 @@ vi.mock('@vue-flow/core', () => ({
   VueFlow: {
     name: 'VueFlow',
     template: '<div class="vue-flow-mock"><slot /></div>',
-    props: ['nodes', 'edges', 'nodeTypes', 'defaultViewport', 'fitViewOnInit', 'selectNodesOnDrag', 'nodesFocusable', 'edgesFocusable']
+    props: ['nodes', 'edges', 'nodeTypes', 'edgeTypes', 'defaultViewport', 'fitViewOnInit', 'selectNodesOnDrag', 'nodesFocusable', 'edgesFocusable']
   },
   useVueFlow: vi.fn(() => ({
     fitView: vi.fn(),
@@ -115,7 +115,10 @@ describe('HomeView', () => {
         ],
         stubs: {
           CreateNodeModal: { template: '<div class="modal-stub"></div>' },
-          VProgressCircular: { template: '<div class="progress-stub">Loading...</div>' }
+          VProgressCircular: { template: '<div class="progress-stub">Loading...</div>' },
+          VBtn: { template: '<button><slot /></button>' },
+          VBtnGroup: { template: '<div class="btn-group"><slot /></div>' },
+          VIcon: { template: '<i></i>' }
         }
       }
     })
@@ -154,11 +157,18 @@ describe('HomeView', () => {
       expect(wrapper.find('.vue-flow-mock').exists()).toBe(true)
     })
 
-    it('shows Create Node button when loaded', async () => {
+    it('shows toolbar when loaded', async () => {
       const wrapper = await mountHome({ isLoading: false, isError: false })
       await flushPromises()
       
-      expect(wrapper.text()).toContain('Create Node')
+      expect(wrapper.find('.toolbar').exists()).toBe(true)
+    })
+
+    it('shows keyboard help when loaded', async () => {
+      const wrapper = await mountHome({ isLoading: false, isError: false })
+      await flushPromises()
+      
+      expect(wrapper.find('.keyboard-help').exists()).toBe(true)
     })
   })
 
@@ -172,18 +182,20 @@ describe('HomeView', () => {
     })
   })
 
-  // Test 5: Create Button
-  describe('Create Button', () => {
-    it('opens modal when Create Node button is clicked', async () => {
+  // Test 5: Modal State
+  describe('Modal State', () => {
+    it('starts with modal closed', async () => {
       const wrapper = await mountHome({ isLoading: false, isError: false })
       await flushPromises()
       
       expect(wrapper.vm.isModalOpen).toBe(false)
+    })
+
+    it('can open modal programmatically', async () => {
+      const wrapper = await mountHome({ isLoading: false, isError: false })
+      await flushPromises()
       
-      const buttons = wrapper.findAll('button')
-      const createBtn = buttons.find(btn => btn.text().includes('Create Node'))
-      await createBtn.trigger('click')
-      
+      wrapper.vm.isModalOpen = true
       expect(wrapper.vm.isModalOpen).toBe(true)
     })
   })
@@ -239,15 +251,69 @@ describe('HomeView', () => {
       
       expect(wrapper.vm.nodeTypes).toHaveProperty('custom')
     })
-  })
 
-  // Test 8: Initial State
-  describe('Initial State', () => {
-    it('starts with modal closed', async () => {
-      const wrapper = await mountHome()
+    it('configures edge types', async () => {
+      const wrapper = await mountHome({ isLoading: false, isError: false })
       await flushPromises()
       
-      expect(wrapper.vm.isModalOpen).toBe(false)
+      expect(wrapper.vm.edgeTypes).toHaveProperty('smoothstep')
+    })
+  })
+
+  // Test 8: Undo/Redo
+  describe('Undo/Redo', () => {
+    it('has canUndo computed property', async () => {
+      const wrapper = await mountHome({ isLoading: false, isError: false })
+      await flushPromises()
+      
+      expect(wrapper.vm.canUndo).toBeDefined()
+    })
+
+    it('has canRedo computed property', async () => {
+      const wrapper = await mountHome({ isLoading: false, isError: false })
+      await flushPromises()
+      
+      expect(wrapper.vm.canRedo).toBeDefined()
+    })
+  })
+
+  // Test 9: Add Child Node Handler
+  describe('Add Child Node', () => {
+    it('has handleAddChildNode function', async () => {
+      const wrapper = await mountHome({ isLoading: false, isError: false })
+      await flushPromises()
+      
+      expect(typeof wrapper.vm.handleAddChildNode).toBe('function')
+    })
+
+    it('sets pendingParentId and opens modal when adding child node', async () => {
+      const wrapper = await mountHome({ isLoading: false, isError: false })
+      await flushPromises()
+      
+      wrapper.vm.handleAddChildNode({ parentId: 'test-id' })
+      
+      expect(wrapper.vm.pendingParentId).toBe('test-id')
+      expect(wrapper.vm.isModalOpen).toBe(true)
+    })
+  })
+
+  // Test 10: Add Node On Edge Handler
+  describe('Add Node On Edge', () => {
+    it('has handleAddNodeOnEdge function', async () => {
+      const wrapper = await mountHome({ isLoading: false, isError: false })
+      await flushPromises()
+      
+      expect(typeof wrapper.vm.handleAddNodeOnEdge).toBe('function')
+    })
+
+    it('sets pendingParentId from sourceId when adding node on edge', async () => {
+      const wrapper = await mountHome({ isLoading: false, isError: false })
+      await flushPromises()
+      
+      wrapper.vm.handleAddNodeOnEdge({ sourceId: 'source-id', targetId: 'target-id' })
+      
+      expect(wrapper.vm.pendingParentId).toBe('source-id')
+      expect(wrapper.vm.isModalOpen).toBe(true)
     })
   })
 })

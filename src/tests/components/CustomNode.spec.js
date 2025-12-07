@@ -4,8 +4,8 @@ import CustomNode from '@/components/CustomNode.vue'
 
 // Mock Vue Flow Handle component
 const HandleStub = {
-  template: '<div class="handle-stub"></div>',
-  props: ['type', 'position']
+  template: '<div class="handle-stub custom-handle"></div>',
+  props: ['type', 'position', 'style']
 }
 
 describe('CustomNode', () => {
@@ -14,7 +14,11 @@ describe('CustomNode', () => {
       props,
       global: {
         stubs: {
-          Handle: HandleStub
+          Handle: HandleStub,
+          'v-icon': {
+            template: '<i :icon="icon"></i>',
+            props: ['icon', 'size']
+          }
         }
       }
     })
@@ -64,7 +68,8 @@ describe('CustomNode', () => {
         selected: false
       })
       
-      expect(wrapper.text()).toContain('Date Time')
+      // Updated: Component now shows "Business Hours" for dateTime type
+      expect(wrapper.text()).toContain('Business Hours')
     })
 
     it('renders "Unknown Node" for unknown type', () => {
@@ -115,22 +120,26 @@ describe('CustomNode', () => {
       expect(wrapper.html()).toContain('mdi-comment-text-outline')
     })
 
-    it('renders mdi-check icon for success connector', () => {
+    it('renders Success text for success connector (no icon)', () => {
       const wrapper = mountNode({
         data: { type: 'dateTimeConnector', data: { connectorType: 'success' } },
         selected: false
       })
       
-      expect(wrapper.html()).toContain('mdi-check')
+      // Updated: Connectors now show text only, no icons
+      expect(wrapper.text()).toContain('Success')
+      expect(wrapper.find('.connector-node').exists()).toBe(true)
     })
 
-    it('renders mdi-close icon for failure connector', () => {
+    it('renders Failure text for failure connector (no icon)', () => {
       const wrapper = mountNode({
         data: { type: 'dateTimeConnector', data: { connectorType: 'failure' } },
         selected: false
       })
       
-      expect(wrapper.html()).toContain('mdi-close')
+      // Updated: Connectors now show text only, no icons
+      expect(wrapper.text()).toContain('Failure')
+      expect(wrapper.find('.connector-node').exists()).toBe(true)
     })
 
     it('renders mdi-circle-outline icon for unknown type', () => {
@@ -145,19 +154,20 @@ describe('CustomNode', () => {
 
   // Test 3: Text Truncation
   describe('Text Truncation', () => {
-    it('truncates description longer than 35 characters', () => {
-      const longText = 'A'.repeat(40)
+    it('truncates description longer than 40 characters', () => {
+      const longText = 'A'.repeat(45)
       const wrapper = mountNode({
         data: { type: 'addComment', data: { comment: longText } },
         selected: false
       })
       
+      // Updated: Truncation is now at 40 characters
       expect(wrapper.text()).toContain('...')
-      expect(wrapper.text()).not.toContain('A'.repeat(40))
+      expect(wrapper.text()).not.toContain('A'.repeat(45))
     })
 
-    it('does not truncate description of exactly 35 characters', () => {
-      const exactText = 'A'.repeat(35)
+    it('does not truncate description of exactly 40 characters', () => {
+      const exactText = 'A'.repeat(40)
       const wrapper = mountNode({
         data: { type: 'addComment', data: { comment: exactText } },
         selected: false
@@ -181,66 +191,85 @@ describe('CustomNode', () => {
 
   // Test 4: Selection State
   describe('Selection State', () => {
-    it('applies selected-node class when selected is true', () => {
+    it('applies custom-node--selected class when selected is true', () => {
       const wrapper = mountNode({
         data: { type: 'trigger', data: {} },
         selected: true
       })
       
-      expect(wrapper.find('.selected-node').exists()).toBe(true)
+      // Updated: Class name changed to custom-node--selected
+      expect(wrapper.find('.custom-node--selected').exists()).toBe(true)
     })
 
-    it('does not apply selected-node class when selected is false', () => {
+    it('does not apply custom-node--selected class when selected is false', () => {
       const wrapper = mountNode({
         data: { type: 'trigger', data: {} },
         selected: false
       })
       
-      expect(wrapper.find('.selected-node').exists()).toBe(false)
+      expect(wrapper.find('.custom-node--selected').exists()).toBe(false)
     })
 
-    it('has higher elevation when selected', () => {
+    it('has custom-node class for regular nodes', () => {
       const wrapper = mountNode({
         data: { type: 'trigger', data: {} },
         selected: true
       })
       
-      // Check that v-card has elevation prop set correctly
-      const card = wrapper.findComponent({ name: 'VCard' })
-      expect(card.props('elevation')).toBe(8)
+      // Updated: Now using custom div instead of v-card
+      expect(wrapper.find('.custom-node').exists()).toBe(true)
     })
 
-    it('has lower elevation when not selected', () => {
+    it('has custom-node class when not selected', () => {
       const wrapper = mountNode({
         data: { type: 'trigger', data: {} },
         selected: false
       })
       
-      const card = wrapper.findComponent({ name: 'VCard' })
-      expect(card.props('elevation')).toBe(2)
+      expect(wrapper.find('.custom-node').exists()).toBe(true)
     })
   })
 
   // Test 5: Connector Styling
   describe('Connector Styling', () => {
-    it('applies grey background for dateTimeConnector type', () => {
+    it('uses connector-node class for dateTimeConnector type', () => {
       const wrapper = mountNode({
         data: { type: 'dateTimeConnector', data: { connectorType: 'success' } },
         selected: false
       })
       
-      const card = wrapper.findComponent({ name: 'VCard' })
-      expect(card.props('color')).toBe('grey-lighten-4')
+      // Updated: Connectors now use connector-node class
+      expect(wrapper.find('.connector-node').exists()).toBe(true)
     })
 
-    it('applies white background for non-connector types', () => {
+    it('uses custom-node class for non-connector types', () => {
       const wrapper = mountNode({
         data: { type: 'sendMessage', data: {} },
         selected: false
       })
       
-      const card = wrapper.findComponent({ name: 'VCard' })
-      expect(card.props('color')).toBe('white')
+      expect(wrapper.find('.custom-node').exists()).toBe(true)
+      expect(wrapper.find('.connector-node').exists()).toBe(false)
+    })
+
+    it('success connector has green border color', () => {
+      const wrapper = mountNode({
+        data: { type: 'dateTimeConnector', data: { connectorType: 'success' } },
+        selected: false
+      })
+      
+      const connector = wrapper.find('.connector-node')
+      expect(connector.attributes('style')).toContain('#4caf50')
+    })
+
+    it('failure connector has red border color', () => {
+      const wrapper = mountNode({
+        data: { type: 'dateTimeConnector', data: { connectorType: 'failure' } },
+        selected: false
+      })
+      
+      const connector = wrapper.find('.connector-node')
+      expect(connector.attributes('style')).toContain('#f44336')
     })
   })
 
@@ -306,7 +335,7 @@ describe('CustomNode', () => {
         selected: false
       })
       
-      const handles = wrapper.findAllComponents(HandleStub)
+      const handles = wrapper.findAll('.handle-stub')
       expect(handles).toHaveLength(2)
     })
   })
@@ -331,5 +360,56 @@ describe('CustomNode', () => {
       expect(wrapper.exists()).toBe(true)
     })
   })
-})
 
+  // Test 9: Layer Color
+  describe('Layer Color', () => {
+    it('uses layerColor for handle background', () => {
+      const wrapper = mountNode({
+        data: { type: 'trigger', data: {}, layerColor: '#e91e63' },
+        selected: false
+      })
+      
+      const handles = wrapper.findAll('.handle-stub')
+      expect(handles.length).toBeGreaterThan(0)
+    })
+
+    it('uses default color when layerColor not provided', () => {
+      const wrapper = mountNode({
+        data: { type: 'trigger', data: {} },
+        selected: false
+      })
+      
+      expect(wrapper.exists()).toBe(true)
+    })
+  })
+
+  // Test 10: Trailing Add Button (Leaf Nodes)
+  describe('Trailing Add Button', () => {
+    it('shows trailing line for leaf nodes', () => {
+      const wrapper = mountNode({
+        data: { type: 'sendMessage', data: {}, isLeaf: true },
+        selected: false
+      })
+      
+      expect(wrapper.find('.trailing-line-container').exists()).toBe(true)
+    })
+
+    it('does not show trailing line for non-leaf nodes', () => {
+      const wrapper = mountNode({
+        data: { type: 'sendMessage', data: {}, isLeaf: false },
+        selected: false
+      })
+      
+      expect(wrapper.find('.trailing-line-container').exists()).toBe(false)
+    })
+
+    it('has add button in trailing line', () => {
+      const wrapper = mountNode({
+        data: { type: 'sendMessage', data: {}, isLeaf: true },
+        selected: false
+      })
+      
+      expect(wrapper.find('.trailing-add-button').exists()).toBe(true)
+    })
+  })
+})

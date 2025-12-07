@@ -88,7 +88,7 @@ describe('NodeDrawer', () => {
 
   // Test 3: Conditional Rendering - sendMessage
   describe('Conditional Rendering - sendMessage', () => {
-    it('shows message content section for sendMessage type', async () => {
+    it('shows message section for sendMessage type', async () => {
       const wrapper = await mountDrawer('123', [
         { 
           id: '123', 
@@ -102,7 +102,8 @@ describe('NodeDrawer', () => {
       
       await flushPromises()
       
-      expect(wrapper.text()).toContain('Message Content')
+      // Updated: Component now shows "Message:" label
+      expect(wrapper.text()).toContain('Message')
     })
   })
 
@@ -247,6 +248,42 @@ describe('NodeDrawer', () => {
       
       const drawerComponent = wrapper.findComponent(NodeDrawer)
       expect(drawerComponent.vm.businessTimes).toEqual([])
+    })
+  })
+
+  // Test 9: Node Type Info
+  describe('Node Type Info', () => {
+    it('shows correct icon for sendMessage type', async () => {
+      const wrapper = await mountDrawer('123', [
+        { id: '123', data: { type: 'sendMessage', data: {} } }
+      ])
+      
+      await flushPromises()
+      
+      const drawerComponent = wrapper.findComponent(NodeDrawer)
+      expect(drawerComponent.vm.nodeTypeInfo.icon).toBe('mdi-message-text-outline')
+    })
+
+    it('shows correct icon for dateTime type', async () => {
+      const wrapper = await mountDrawer('123', [
+        { id: '123', data: { type: 'dateTime', data: {} } }
+      ])
+      
+      await flushPromises()
+      
+      const drawerComponent = wrapper.findComponent(NodeDrawer)
+      expect(drawerComponent.vm.nodeTypeInfo.icon).toBe('mdi-clock-outline')
+    })
+
+    it('shows correct icon for trigger type', async () => {
+      const wrapper = await mountDrawer('123', [
+        { id: '123', data: { type: 'trigger', data: {} } }
+      ])
+      
+      await flushPromises()
+      
+      const drawerComponent = wrapper.findComponent(NodeDrawer)
+      expect(drawerComponent.vm.nodeTypeInfo.icon).toBe('mdi-flash')
     })
   })
 })
