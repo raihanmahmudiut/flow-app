@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useHistory } from '../composables/useHistory'
+import { getLayoutElements } from '../utils/useLayout'
 
 export const useFlowStore = defineStore('flow', () => {
     const nodes = ref([])
@@ -76,8 +77,39 @@ export const useFlowStore = defineStore('flow', () => {
 
     function removeNode(id) {
         recordState()
-        nodes.value = nodes.value.filter(n => n.id !== id)
-        edges.value = edges.value.filter(e => e.source !== id && e.target !== id)
+        
+        // Get the node to check if it has children (for cascading delete)
+        const nodeToDelete = nodes.value.find(n => n.id === id)
+        if (!nodeToDelete) return
+        
+        // Find all descendant nodes (children, grandchildren, etc.)
+        const nodesToDelete = new Set([id])
+        let foundMore = true
+        while (foundMore) {
+            foundMore = false
+            nodes.value.forEach(n => {
+                const parentId = n.data?.parentId?.toString()
+                if (parentId && nodesToDelete.has(parentId) && !nodesToDelete.has(n.id)) {
+                    nodesToDelete.add(n.id)
+                    foundMore = true
+                }
+            })
+        }
+        
+        // Filter out deleted nodes and get remaining raw data
+        const remainingRawData = nodes.value
+            .filter(n => !nodesToDelete.has(n.id))
+            .map(n => n.data)
+        
+        // Re-layout the graph (this recalculates isLeaf and positions)
+        if (remainingRawData.length > 0) {
+            const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutElements(remainingRawData)
+            nodes.value = layoutedNodes
+            edges.value = layoutedEdges
+        } else {
+            nodes.value = []
+            edges.value = []
+        }
     }
 
      //Undos last action
