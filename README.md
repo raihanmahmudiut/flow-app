@@ -43,33 +43,50 @@ A visual flow chart editor built with Vue 3, Vue Flow, and Vuetify. Create, edit
 ```
 src/
 ├── components/
-│   ├── CustomNode.vue       # Custom node component for Vue Flow
-│   ├── CustomEdge.vue       # Custom edge with add-node button
-│   └── CreateNodeModal.vue  # Modal dialog for creating new nodes
+│   ├── CustomNode.vue         # Custom node component for Vue Flow
+│   ├── CustomEdge.vue         # Custom edge with add-node button
+│   ├── CreateNodeModal.vue    # Modal dialog for creating new nodes
+│   ├── drawer/                # NodeDrawer presentational components
+│   │   ├── DrawerHeader.vue   # Header with icon, title, close button
+│   │   ├── DateTimeEditor.vue # Business hours time grid editor
+│   │   ├── MessageEditor.vue  # Message preview and textarea
+│   │   ├── CommentEditor.vue  # Comment textarea
+│   │   └── TriggerInfo.vue    # Read-only trigger type display
+│   ├── flow/                  # HomeView presentational components
+│   │   ├── FlowToolbar.vue    # Undo/Redo buttons
+│   │   ├── FlowStates.vue     # Loading/Error state displays
+│   │   └── KeyboardHelp.vue   # Keyboard shortcuts hint
+│   └── node/                  # CustomNode presentational components
+│       └── TrailingLine.vue   # Dashed line with plus button for leaf nodes
 ├── composables/
-│   └── useHistory.js        # Undo/redo history management
+│   ├── useHistory.js          # Undo/redo history management
+│   ├── useFlowData.js         # Flow data fetching and initialization
+│   ├── useKeyboardShortcuts.js # Keyboard event handling
+│   ├── useNodeCreation.js     # Node creation logic
+│   ├── useNodeDrag.js         # Drag events with undo support
+│   └── useNodeEditor.js       # Node editing state and methods
 ├── views/
-│   ├── HomeView.vue         # Main view with flow editor
-│   └── NodeDrawer.vue       # Slide-out drawer for node details
+│   ├── HomeView.vue           # Main view with flow editor
+│   └── NodeDrawer.vue         # Slide-out drawer for node details
 ├── stores/
-│   └── flowStore.js         # Pinia store for nodes, edges, and history
+│   └── flowStore.js           # Pinia store for nodes, edges, and history
 ├── utils/
-│   └── useLayout.js         # Dagre layout utility
+│   └── useLayout.js           # Dagre layout utility
 ├── router/
-│   └── index.js             # Vue Router configuration
+│   └── index.js               # Vue Router configuration
 ├── tests/
-│   ├── setup.js             # Test configuration and mocks
-│   ├── composables/         # Composable tests
-│   ├── utils/               # Utility function tests
-│   ├── stores/              # Store tests
-│   └── components/          # Component tests
-├── App.vue                  # Root component
-├── main.js                  # Application entry point
-└── style.css                # Global styles
+│   ├── setup.js               # Test configuration and mocks
+│   ├── composables/           # Composable tests
+│   ├── utils/                 # Utility function tests
+│   ├── stores/                # Store tests
+│   └── components/            # Component tests
+├── App.vue                    # Root component
+├── main.js                    # Application entry point
+└── style.css                  # Global styles
 
 .github/
 └── workflows/
-    └── ci-cd.yml            # GitHub Actions CI/CD pipeline with Vercel deployment
+    └── ci-cd.yml              # GitHub Actions CI/CD pipeline with Vercel deployment
 ```
 
 ## Getting Started
@@ -128,15 +145,52 @@ npm run test:coverage
 
 | Module | Tests | Coverage Areas |
 |--------|-------|----------------|
-| `useLayout.js` | 14 | Node creation, edge generation, layout coordinates, order independence |
-| `useHistory.js` | 16 | Undo/redo, state management, history limits |
+| **Composables** | | |
+| `useHistory.js` | 21 | Undo/redo, state management, history limits |
+| `useKeyboardShortcuts.js` | 16 | Keyboard events, shortcuts, event cleanup |
+| `useNodeCreation.js` | 19 | Modal state, node creation, dateTime nodes |
+| `useNodeEditor.js` | 24 | Node lookup, type config, save/delete |
+| `useNodeDrag.js` | 9 | Drag tracking, movement threshold |
+| `useFlowData.js` | 9 | Data fetching, initialization |
+| **Utilities** | | |
+| `useLayout.js` | 14 | Node creation, edge generation, layout coordinates |
+| **Store** | | |
 | `flowStore.js` | 12 | State management, CRUD operations, cascading deletions |
-| `CustomNode.vue` | 30 | Rendering, icons, truncation, selection states |
+| **Components** | | |
+| `CustomNode.vue` | 37 | Rendering, icons, truncation, selection states |
 | `CreateNodeModal.vue` | 13 | Form validation, submission, parent options |
-| `NodeDrawer.vue` | 12 | Route matching, conditional rendering, computed properties |
-| `HomeView.vue` | 10 | Loading states, node interactions, modal control |
+| `NodeDrawer.vue` | 8 | Route matching, conditional rendering, delete action |
+| `HomeView.vue` | 8 | Loading states, node interactions, Vue Flow setup |
 
-**Total: 107+ tests**
+**Total: 190 tests**
+
+## Architecture
+
+### Component Architecture
+
+The project follows a **smart/dumb component pattern**:
+
+- **Smart Components** (Views): Handle business logic, state, and composables
+  - `HomeView.vue` - Orchestrates flow editor
+  - `NodeDrawer.vue` - Orchestrates node editing
+
+- **Dumb Components** (Presentational): Pure UI, receive props, emit events
+  - `drawer/*` - DrawerHeader, DateTimeEditor, MessageEditor, etc.
+  - `flow/*` - FlowToolbar, FlowStates, KeyboardHelp
+  - `node/*` - TrailingLine
+
+### Composables
+
+Logic is extracted into reusable composables:
+
+| Composable | Purpose |
+|------------|---------|
+| `useFlowData` | Fetches and initializes flow data from API |
+| `useHistory` | Manages undo/redo state stack |
+| `useKeyboardShortcuts` | Handles keyboard events (Ctrl+Z, Delete, etc.) |
+| `useNodeCreation` | Modal state and node creation logic |
+| `useNodeDrag` | Tracks drag events for undo support |
+| `useNodeEditor` | Node editing state and save/delete methods |
 
 ## Design Decisions
 
@@ -170,12 +224,11 @@ Node details are accessed via URL (`/node/:id`), enabling:
 - Browser back/forward navigation
 - Bookmarkable node views
 
-### 5. Component Architecture
+### 5. Smart/Dumb Component Pattern
 
-- **CustomNode** - Renders different node types with layer-colored icons and trailing add buttons
-- **CustomEdge** - Renders edges with midpoint plus buttons for inserting nodes
-- **CreateNodeModal** - Handles new node creation with validation
-- **NodeDrawer** - Provides detailed editing based on node type
+- **Smart components** use composables and manage state
+- **Dumb components** are pure presentational, receiving props and emitting events
+- This separation improves testability and reusability
 
 ### 6. Undo/Redo with History Stack
 
