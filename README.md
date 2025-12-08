@@ -12,12 +12,15 @@ A visual flow chart editor built with Vue 3, Vue Flow, and Vuetify. Create, edit
 - **Visual Flow Editor** - Drag, zoom, and pan through your workflow diagrams
 - **Multiple Node Types** - Support for triggers, messages, comments, date/time conditions, and connectors
 - **Auto-Layout** - Automatic node positioning using Dagre graph layout algorithm
+- **Layer-Based Coloring** - Nodes and edges are color-coded by depth in the tree
+- **Interactive Edges** - Click the plus button on any edge to insert a new node
+- **Trailing Add Buttons** - Leaf nodes show a dashed line with a plus button to add children
 - **Node Details Drawer** - Edit node properties in a slide-out panel
 - **Create New Nodes** - Add nodes via modal dialog with parent selection
 - **Undo/Redo** - Full history support with keyboard shortcuts (Ctrl+Z / Ctrl+Y)
 - **Keyboard Accessible** - Navigate and edit nodes using keyboard only
 - **Responsive Design** - Built with Vuetify's Material Design components
-- **CI/CD Pipeline** - Automated testing, linting, and builds with GitHub Actions
+- **CI/CD Pipeline** - Automated testing, linting, and deployment to Vercel via GitHub Actions
 
 ## Tech Stack
 
@@ -41,6 +44,7 @@ A visual flow chart editor built with Vue 3, Vue Flow, and Vuetify. Create, edit
 src/
 ├── components/
 │   ├── CustomNode.vue       # Custom node component for Vue Flow
+│   ├── CustomEdge.vue       # Custom edge with add-node button
 │   └── CreateNodeModal.vue  # Modal dialog for creating new nodes
 ├── composables/
 │   └── useHistory.js        # Undo/redo history management
@@ -65,7 +69,7 @@ src/
 
 .github/
 └── workflows/
-    └── ci.yml               # GitHub Actions CI/CD pipeline
+    └── ci-cd.yml            # GitHub Actions CI/CD pipeline with Vercel deployment
 ```
 
 ## Getting Started
@@ -168,7 +172,8 @@ Node details are accessed via URL (`/node/:id`), enabling:
 
 ### 5. Component Architecture
 
-- **CustomNode** - Renders different node types with appropriate icons and styling
+- **CustomNode** - Renders different node types with layer-colored icons and trailing add buttons
+- **CustomEdge** - Renders edges with midpoint plus buttons for inserting nodes
 - **CreateNodeModal** - Handles new node creation with validation
 - **NodeDrawer** - Provides detailed editing based on node type
 
@@ -231,13 +236,13 @@ The app loads flow data from `/public/payload.json`. Each node follows this stru
 
 ## CI/CD Pipeline
 
-The project includes a GitHub Actions workflow (`.github/workflows/ci.yml`) that runs on every push and pull request:
+The project includes a GitHub Actions workflow (`.github/workflows/ci-cd.yml`) that runs on every push and pull request to `main`, `develop`, or `master` branches:
 
 ```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│    Lint     │────▶│    Test     │────▶│    Build    │
-│   ESLint    │     │   Vitest    │     │    Vite     │
-└─────────────┘     └─────────────┘     └─────────────┘
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│    Lint     │────▶│    Test     │────▶│    Build    │────▶│   Deploy    │
+│   ESLint    │     │   Vitest    │     │    Vite     │     │   Vercel    │
+└─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
 ```
 
 ### Pipeline Stages
@@ -245,11 +250,17 @@ The project includes a GitHub Actions workflow (`.github/workflows/ci.yml`) that
 1. **Lint** - Runs ESLint to check code quality
 2. **Test** - Runs all unit tests with coverage report
 3. **Build** - Creates production build to verify compilation
+4. **Deploy** - Deploys to Vercel (production on `main`, preview on other branches)
 
-### Artifacts
+### Required Secrets
 
-- **Coverage Report** - Uploaded for 30 days
-- **Build Output** - Uploaded for 7 days
+To enable deployment, configure these secrets in your GitHub repository:
+
+| Secret | Description |
+|--------|-------------|
+| `VERCEL_TOKEN` | Your Vercel API token |
+| `VERCEL_ORG_ID` | Your Vercel organization ID |
+| `VERCEL_PROJECT_ID` | Your Vercel project ID |
 
 ## Browser Support
 
