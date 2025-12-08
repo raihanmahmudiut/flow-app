@@ -221,9 +221,9 @@ describe('NodeDrawer', () => {
     })
   })
 
-  // Test 8: businessTimes Computed
-  describe('businessTimes Computed', () => {
-    it('returns times array from node data', async () => {
+  // Test 8: editableTimes (local state populated from node data)
+  describe('editableTimes', () => {
+    it('populates times array from node data', async () => {
       const times = [
         { day: 'mon', startTime: '09:00', endTime: '17:00' },
         { day: 'tue', startTime: '10:00', endTime: '18:00' }
@@ -236,10 +236,10 @@ describe('NodeDrawer', () => {
       await flushPromises()
       
       const drawerComponent = wrapper.findComponent(NodeDrawer)
-      expect(drawerComponent.vm.businessTimes).toEqual(times)
+      expect(drawerComponent.vm.editableTimes).toEqual(times)
     })
 
-    it('returns empty array when no times', async () => {
+    it('defaults to empty array when no times in node data', async () => {
       const wrapper = await mountDrawer('123', [
         { id: '123', data: { type: 'dateTime', data: {} } }
       ])
@@ -247,7 +247,7 @@ describe('NodeDrawer', () => {
       await flushPromises()
       
       const drawerComponent = wrapper.findComponent(NodeDrawer)
-      expect(drawerComponent.vm.businessTimes).toEqual([])
+      expect(drawerComponent.vm.editableTimes).toEqual([])
     })
   })
 

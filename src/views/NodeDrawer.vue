@@ -1,11 +1,17 @@
 <script setup>
-    import { computed } from 'vue'
+    import { computed, ref, watch } from 'vue'
     import { useRoute, useRouter } from 'vue-router'
     import { useFlowStore } from '../stores/flowStore'
     
     const route = useRoute()
     const router = useRouter()
     const store = useFlowStore()
+    
+    const editableName = ref('')
+    const editableMessage = ref('')
+    const editableComment = ref('')
+    const editableTimes = ref([])
+    const editableTimezone = ref('UTC')
     
     const activeNode = computed(() => {
         return store.nodes.find(n => n.id === route.params.id)
@@ -14,7 +20,6 @@
     const nodeData = computed(() => activeNode.value ? activeNode.value.data : {})
     const nodeInternalData = computed(() => activeNode.value ? activeNode.value.data.data : {})
 
-    // Get node type display info
     const nodeTypeInfo = computed(() => {
         const type = nodeData.value?.type
         switch (type) {
@@ -31,24 +36,62 @@
         }
     })
 
-    const messageText = computed({
-        get: () => {
-            if (!nodeInternalData.value.payload) return ''
-            const textObj = nodeInternalData.value.payload.find(p => p.type === 'text')
-            return textObj ? textObj.text : ''
-        },
-        set: (val) => {
-            if (nodeInternalData.value.payload) {
-                const textObj = nodeInternalData.value.payload.find(p => p.type === 'text')
-                if (textObj) textObj.text = val
-            }
-        }
+    const messageText = computed(() => {
+        if (!nodeInternalData.value?.payload) return ''
+        const textObj = nodeInternalData.value.payload.find(p => p.type === 'text')
+        return textObj ? textObj.text : ''
     })
-    
-    const businessTimes = computed(() => nodeInternalData.value.times || [])
     
     const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
     
+    // this will watch for node changes and populate local state
+    watch(activeNode, (node) => {
+        if (node) {
+            editableName.value = node.data.name || ''
+            editableComment.value = node.data.data?.comment || ''
+            editableTimezone.value = node.data.data?.timezone || 'UTC'
+            editableTimes.value = JSON.parse(JSON.stringify(node.data.data?.times || []))
+            
+            // this will get the text payload for sendMessage
+            const textPayload = node.data.data?.payload?.find(p => p.type === 'text')
+            editableMessage.value = textPayload?.text || ''
+        }
+    }, { immediate: true })
+    
+    function saveChanges() {
+        if (!activeNode.value) return
+        
+        const nodeId = activeNode.value.id
+        const nodeType = nodeData.value.type
+        
+        // this will build updates based on node type
+        const updates = {
+            name: editableName.value
+        }
+        
+        if (nodeType === 'sendMessage') {
+            // this will update the text in payload
+            const currentPayload = nodeInternalData.value.payload || []
+            const newPayload = currentPayload.map(item => {
+                if (item.type === 'text') {
+                    return { ...item, text: editableMessage.value }
+                }
+                return item
+            })
+            updates.data = { ...nodeInternalData.value, payload: newPayload }
+        } else if (nodeType === 'addComment') {
+            updates.data = { ...nodeInternalData.value, comment: editableComment.value }
+        } else if (nodeType === 'dateTime') {
+            updates.data = { 
+                ...nodeInternalData.value, 
+                times: editableTimes.value,
+                timezone: editableTimezone.value
+            }
+        }
+        
+        store.updateNode(nodeId, updates)
+    }
+
     function closeDrawer() {
         router.push('/')
     }
@@ -90,6 +133,18 @@
         <v-divider />
 
         <div v-if="activeNode" class="drawer-content">
+            <!-- Editable Name Field -->
+            <div class="section">
+                <label class="field-label">Node Name</label>
+                <v-text-field
+                    v-model="editableName"
+                    variant="outlined"
+                    density="compact"
+                    hide-details
+                    placeholder="Enter node name"
+                    @blur="saveChanges"
+                />
+            </div>
             
             <!-- Business Hours / DateTime Section -->
             <div v-if="nodeData.type === 'dateTime'" class="section">
@@ -110,7 +165,7 @@
 
                 <div class="time-grid">
                     <div 
-                        v-for="(time, index) in businessTimes" 
+                        v-for="(time, index) in editableTimes" 
                         :key="index" 
                         class="time-row"
                     >
@@ -121,6 +176,7 @@
                                     type="time" 
                                     v-model="time.startTime" 
                                     class="time-input"
+                                    @change="saveChanges"
                                 />
                                 <v-icon size="14" class="time-icon">mdi-clock-outline</v-icon>
                             </div>
@@ -130,6 +186,7 @@
                                     type="time" 
                                     v-model="time.endTime" 
                                     class="time-input"
+                                    @change="saveChanges"
                                 />
                                 <v-icon size="14" class="time-icon">mdi-clock-outline</v-icon>
                             </div>
@@ -140,12 +197,13 @@
                 <div class="timezone-section">
                     <label class="field-label">Time Zone</label>
                     <v-select
-                        :model-value="nodeInternalData.timezone || 'UTC'"
-                        :items="['(GMT+00:00) UTC', '(GMT-05:00) Eastern Time', '(GMT-08:00) Pacific Time', '(GMT+01:00) Central European Time']"
+                        v-model="editableTimezone"
+                        :items="['UTC', 'America/New_York', 'America/Los_Angeles', 'Europe/London']"
                         variant="outlined"
                         density="compact"
                         hide-details
                         class="timezone-select"
+                        @update:model-value="saveChanges"
                     />
                 </div>
             </div>
@@ -158,7 +216,8 @@
                 </div>
 
                 <v-textarea
-                    v-model="messageText"
+                    @blur="saveChanges"
+                    v-model="editableMessage"
                     label="Edit Message"
                     variant="outlined"
                     rows="4"
@@ -182,7 +241,8 @@
             <div v-if="nodeData.type === 'addComment'" class="section">
                 <label class="field-label">Internal Comment</label>
                 <v-textarea
-                    v-model="nodeInternalData.comment"
+                    v-model="editableComment"
+                    @blur="saveChanges"
                     label="Comment"
                     variant="outlined"
                     rows="3"

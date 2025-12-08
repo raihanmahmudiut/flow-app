@@ -110,7 +110,7 @@ function applyDagrePositions(nodes, dagreGraph) {
  * This function transforms raw data into Vue Flow nodes and edges
  */
 export function getLayoutElements(rawData) {
-    // initializes the Dagre graph
+    // This initializes the Dagre graph
     const dagreGraph = new dagre.graphlib.Graph()
     dagreGraph.setDefaultEdgeLabel(() => ({}))
     dagreGraph.setGraph({ 
