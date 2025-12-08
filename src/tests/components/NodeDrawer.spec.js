@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createTestingPinia } from '@pinia/testing'
 import { createRouter, createMemoryHistory } from 'vue-router'
@@ -7,7 +7,7 @@ import NodeDrawer from '@/views/NodeDrawer.vue'
 import { useFlowStore } from '@/stores/flowStore'
 
 // Create a mock router
-const createMockRouter = (initialRoute = '/node/123') => {
+const createMockRouter = () => {
   return createRouter({
     history: createMemoryHistory(),
     routes: [

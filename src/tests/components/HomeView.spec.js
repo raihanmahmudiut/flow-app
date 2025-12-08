@@ -4,7 +4,6 @@ import { createTestingPinia } from '@pinia/testing'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { ref } from 'vue'
 import HomeView from '@/views/HomeView.vue'
-import { useFlowStore } from '@/stores/flowStore'
 
 // Mock Vue Query
 vi.mock('@tanstack/vue-query', () => ({
@@ -70,15 +69,12 @@ describe('HomeView', () => {
   let mockOnNodeClick
   let mockOnNodeDragStart
   let mockOnNodeDragStop
-  let nodeClickCallback
 
   beforeEach(() => {
     vi.clearAllMocks()
     
     mockFitView = vi.fn()
-    mockOnNodeClick = vi.fn((callback) => {
-      nodeClickCallback = callback
-    })
+    mockOnNodeClick = vi.fn()
     mockOnNodeDragStart = vi.fn()
     mockOnNodeDragStop = vi.fn()
     

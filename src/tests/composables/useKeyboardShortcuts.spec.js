@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+
+/* global KeyboardEvent */
 import { mount } from '@vue/test-utils'
 import { defineComponent, nextTick } from 'vue'
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts'

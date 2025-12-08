@@ -1,9 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createTestingPinia } from '@pinia/testing'
 import { h } from 'vue'
 import CreateNodeModal from '@/components/CreateNodeModal.vue'
-import { useFlowStore } from '@/stores/flowStore'
 
 // VApp wrapper to provide Vuetify layout context
 const VAppWrapper = {
