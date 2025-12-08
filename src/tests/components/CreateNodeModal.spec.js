@@ -73,7 +73,7 @@ describe('CreateNodeModal', () => {
       expect(modalComponent.vm.typeOptions).toEqual([
         { title: 'Send Message', value: 'sendMessage' },
         { title: 'Add Comments', value: 'addComment' },
-        { title: 'Business Hours', value: 'businessHours' }
+        { title: 'Business Hours', value: 'dateTime' }
       ])
     })
   })

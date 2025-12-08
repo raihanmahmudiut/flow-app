@@ -32,8 +32,10 @@
     const typeOptions = [
         { title: 'Send Message', value: 'sendMessage' },
         { title: 'Add Comments', value: 'addComment' },
-        { title: 'Business Hours', value: 'businessHours' },
+        { title: 'Business Hours', value: 'dateTime' },
     ]
+
+    const isDateTimeType = computed(() => formData.value.type === 'dateTime')
 
     const parentOptions = computed(() => {
         return store.nodes.map(node => ({ 
@@ -96,15 +98,25 @@
                     ></v-text-field>
 
                     <v-textarea
+                        v-if="!isDateTimeType"
                         v-model="formData.description"
                         label="Description / Content"
-                        :rules="[rules.required]"
+                        :rules="isDateTimeType ? [] : [rules.required]"
                         variant="outlined"
                         density="compact"
                         rows="3"
                         class="mb-3"
                     ></v-textarea>
 
+                    <v-alert
+                        v-else
+                        type="info"
+                        variant="tonal"
+                        density="compact"
+                        class="mb-3"
+                    >
+                        This will create a Business Hours node with Success and Failure branches automatically.
+                    </v-alert>
                     <v-select
                         v-model="formData.type"
                         :items="typeOptions"

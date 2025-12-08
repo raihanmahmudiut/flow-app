@@ -176,6 +176,63 @@
         // Use pending parent if set, otherwise use form's parentId
         const parentId = pendingParentId.value || formData.parentId
 
+        // Handle Business Hours (dateTime) type specially - it creates 3 nodes
+        if (formData.type === 'dateTime') {
+            const successId = Math.random().toString(36).substring(2, 8)
+            const failureId = Math.random().toString(36).substring(2, 8)
+            
+            // Main dateTime node
+            const dateTimeNode = {
+                id: newId,
+                parentId: parentId,
+                type: 'dateTime',
+                name: formData.title || 'Business Hours',
+                data: {
+                    times: [
+                        { startTime: '09:00', endTime: '17:00', day: 'mon' },
+                        { startTime: '09:00', endTime: '17:00', day: 'tue' },
+                        { startTime: '09:00', endTime: '17:00', day: 'wed' },
+                        { startTime: '09:00', endTime: '17:00', day: 'thu' },
+                        { startTime: '09:00', endTime: '17:00', day: 'fri' },
+                    ],
+                    connectors: [successId, failureId],
+                    timezone: 'UTC',
+                    action: 'businessHours'
+                }
+            }
+            
+            // Success connector
+            const successNode = {
+                id: successId,
+                parentId: newId,
+                type: 'dateTimeConnector',
+                name: 'Success',
+                data: { connectorType: 'success' }
+            }
+            
+            // Failure connector
+            const failureNode = {
+                id: failureId,
+                parentId: newId,
+                type: 'dateTimeConnector',
+                name: 'Failure',
+                data: { connectorType: 'failure' }
+            }
+            
+            // Add all three nodes to the raw data and re-layout
+            const currentRawData = store.nodes.map(n => n.data)
+            const newRawData = [...currentRawData, dateTimeNode, successNode, failureNode]
+            const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutElements(newRawData)
+            
+            store.setNodes(layoutedNodes)
+            store.setEdges(layoutedEdges)
+            
+            // Clear pending parent and close modal
+            pendingParentId.value = null
+            return
+        }
+
+        // Regular node creation for other types
         const newRawNode = {
             id: newId,
             parentId: parentId,
@@ -188,9 +245,6 @@
                 ...(formData.type === 'addComment' && {
                     comment: formData.description
                 }),
-                ...(formData.type === 'businessHours' && {
-                    timezone: formData.description 
-                })
             }
         }
 
