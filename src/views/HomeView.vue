@@ -7,8 +7,11 @@
     import CustomNode from '../components/CustomNode.vue'
     import CustomEdge from '../components/CustomEdge.vue'
     import CreateNodeModal from '../components/CreateNodeModal.vue'
+    import FlowToolbar from '../components/flow/FlowToolbar.vue'
+    import KeyboardHelp from '../components/flow/KeyboardHelp.vue'
+    import FlowStates from '../components/flow/FlowStates.vue'
     import { useFlowStore } from '../stores/flowStore'
-    import { getLayoutElements, getLayerColor } from '../utils/useLayout'
+    import { getLayoutElements } from '../utils/useLayout'
     import { useRouter } from 'vue-router'
 
     const store = useFlowStore()
@@ -26,6 +29,7 @@
     const canUndo = computed(() => store.canUndo)
     const canRedo = computed(() => store.canRedo)
 
+    // Fetch flow data
     const { data, isLoading, isError } = useQuery({
         queryKey: ['flowData'],
         queryFn: async () => {
@@ -35,18 +39,17 @@
         }
     })
 
+    // Initialize flow when data loads
     watch(data, (rawData) => {
         if (rawData) {
             const { nodes, edges } = getLayoutElements(rawData)
-
             store.setNodes(nodes)
             store.setEdges(edges)
-            
-            // Initialize history after loading data
             store.initHistory()
         }
     })
 
+    // Handle node click - navigate to node details
     onNodeClick(({ node }) => {
         if (node.type === 'dateTimeConnector') return
         router.push(`/node/${node.id}`)
@@ -54,9 +57,7 @@
 
     // Record state before node drag starts
     onNodeDragStart(({ nodes: draggedNodes }) => {
-        // Record current state FIRST (before any position changes)
         store.recordState()
-        // Then save starting positions to compare later
         dragStartPositions = draggedNodes.map(n => ({ 
             id: n.id, 
             x: n.position.x, 
@@ -68,21 +69,19 @@
     onNodeDragStop(({ nodes: draggedNodes }) => {
         if (!dragStartPositions) return
         
-        // Check if any dragged node actually moved
         let anyMoved = false
         for (const node of draggedNodes) {
             const startPos = dragStartPositions.find(p => p.id === node.id)
             if (startPos) {
                 const dx = Math.abs(startPos.x - node.position.x)
                 const dy = Math.abs(startPos.y - node.position.y)
-                if (dx > 1 || dy > 1) { // Allow small tolerance
+                if (dx > 1 || dy > 1) {
                     anyMoved = true
                     break
                 }
             }
         }
         
-        // If no actual movement, discard the recorded state
         if (!anyMoved) {
             store.discardLastRecord()
         }
@@ -90,7 +89,8 @@
         dragStartPositions = null
     })
 
-    // Keyboard shortcuts handler
+    // ==================== Keyboard Shortcuts ====================
+    
     function handleKeydown(event) {
         // Undo: Ctrl+Z (or Cmd+Z on Mac)
         if ((event.ctrlKey || event.metaKey) && event.key === 'z' && !event.shiftKey) {
@@ -98,7 +98,7 @@
             handleUndo()
         }
         
-        // Redo: Ctrl+Shift+Z or Ctrl+Y (or Cmd+Shift+Z / Cmd+Y on Mac)
+        // Redo: Ctrl+Shift+Z or Ctrl+Y
         if ((event.ctrlKey || event.metaKey) && (event.key === 'y' || (event.key === 'z' && event.shiftKey))) {
             event.preventDefault()
             handleRedo()
@@ -136,7 +136,6 @@
         }
     }
 
-    // Check if an input element is focused
     function isInputFocused() {
         const activeElement = document.activeElement
         return activeElement && (
@@ -146,6 +145,8 @@
         )
     }
 
+    // ==================== Undo/Redo Handlers ====================
+
     function handleUndo() {
         store.undo()
     }
@@ -154,85 +155,84 @@
         store.redo()
     }
 
-    // Handle add node from trailing line plus button
+    // ==================== Node Creation Handlers ====================
+
     function handleAddChildNode(event) {
         pendingParentId.value = event.parentId.toString()
         isModalOpen.value = true
     }
 
-    // Handle add node from edge plus button
     function handleAddNodeOnEdge(event) {
-        // For now, add as child of source node
         pendingParentId.value = event.sourceId
         isModalOpen.value = true
     }
 
     function handleCreateNode(formData) {
-        // Record state before creating node
         store.recordState()
         
         const newId = Math.random().toString(36).substring(2, 6)
-        
-        // Use pending parent if set, otherwise use form's parentId
         const parentId = pendingParentId.value || formData.parentId
 
-        // Handle Business Hours (dateTime) type specially - it creates 3 nodes
+        // Handle Business Hours (dateTime) type - creates 3 nodes
         if (formData.type === 'dateTime') {
-            const successId = Math.random().toString(36).substring(2, 8)
-            const failureId = Math.random().toString(36).substring(2, 8)
-            
-            // Main dateTime node
-            const dateTimeNode = {
-                id: newId,
-                parentId: parentId,
-                type: 'dateTime',
-                name: formData.title || 'Business Hours',
-                data: {
-                    times: [
-                        { startTime: '09:00', endTime: '17:00', day: 'mon' },
-                        { startTime: '09:00', endTime: '17:00', day: 'tue' },
-                        { startTime: '09:00', endTime: '17:00', day: 'wed' },
-                        { startTime: '09:00', endTime: '17:00', day: 'thu' },
-                        { startTime: '09:00', endTime: '17:00', day: 'fri' },
-                    ],
-                    connectors: [successId, failureId],
-                    timezone: 'UTC',
-                    action: 'businessHours'
-                }
-            }
-            
-            // Success connector
-            const successNode = {
-                id: successId,
-                parentId: newId,
-                type: 'dateTimeConnector',
-                name: 'Success',
-                data: { connectorType: 'success' }
-            }
-            
-            // Failure connector
-            const failureNode = {
-                id: failureId,
-                parentId: newId,
-                type: 'dateTimeConnector',
-                name: 'Failure',
-                data: { connectorType: 'failure' }
-            }
-            
-            // Add all three nodes to the raw data and re-layout
-            const currentRawData = store.nodes.map(n => n.data)
-            const newRawData = [...currentRawData, dateTimeNode, successNode, failureNode]
-            const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutElements(newRawData)
-            
-            store.setNodes(layoutedNodes)
-            store.setEdges(layoutedEdges)
-            
-            // Clear pending parent and close modal
-            pendingParentId.value = null
+            createDateTimeNodes(newId, parentId, formData)
             return
         }
 
-        // Regular node creation for other types
+        // Regular node creation
+        createRegularNode(newId, parentId, formData)
+    }
+
+    function createDateTimeNodes(newId, parentId, formData) {
+        const successId = Math.random().toString(36).substring(2, 8)
+        const failureId = Math.random().toString(36).substring(2, 8)
+        
+        const dateTimeNode = {
+            id: newId,
+            parentId: parentId,
+            type: 'dateTime',
+            name: formData.title || 'Business Hours',
+            data: {
+                times: [
+                    { startTime: '09:00', endTime: '17:00', day: 'mon' },
+                    { startTime: '09:00', endTime: '17:00', day: 'tue' },
+                    { startTime: '09:00', endTime: '17:00', day: 'wed' },
+                    { startTime: '09:00', endTime: '17:00', day: 'thu' },
+                    { startTime: '09:00', endTime: '17:00', day: 'fri' },
+                ],
+                connectors: [successId, failureId],
+                timezone: 'UTC',
+                action: 'businessHours'
+            }
+        }
+        
+        const successNode = {
+            id: successId,
+            parentId: newId,
+            type: 'dateTimeConnector',
+            name: 'Success',
+            data: { connectorType: 'success' }
+        }
+        
+        const failureNode = {
+            id: failureId,
+            parentId: newId,
+            type: 'dateTimeConnector',
+            name: 'Failure',
+            data: { connectorType: 'failure' }
+        }
+        
+        const currentRawData = store.nodes.map(n => n.data)
+        const newRawData = [...currentRawData, dateTimeNode, successNode, failureNode]
+        const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutElements(newRawData)
+        
+        store.setNodes(layoutedNodes)
+        store.setEdges(layoutedEdges)
+        
+        pendingParentId.value = null
+    }
+
+    function createRegularNode(newId, parentId, formData) {
         const newRawNode = {
             id: newId,
             parentId: parentId,
@@ -257,13 +257,11 @@
         }))
 
         const allRawNodes = [...currentRawNodes, newRawNode]
-
         const { nodes, edges } = getLayoutElements(allRawNodes)
 
         store.setNodes(nodes)
         store.setEdges(edges)
 
-        // Reset pending parent
         pendingParentId.value = null
 
         setTimeout(() => {
@@ -274,6 +272,8 @@
     function handleModalClose() {
         pendingParentId.value = null
     }
+
+    // ==================== Vue Flow Config ====================
 
     const nodeTypes = {
         custom: markRaw(CustomNode)
@@ -296,42 +296,22 @@
 
 <template>
     <div class="flow-container">
-        <div v-if="isLoading" class="loading-state">
-            <v-progress-circular indeterminate color="primary" size="48" />
-            <span class="loading-text">Loading workflow...</span>
-        </div>
+        <!-- Loading/Error States -->
+        <FlowStates 
+            :is-loading="isLoading" 
+            :is-error="isError" 
+        />
 
-        <div v-else-if="isError" class="error-state">
-            <v-icon icon="mdi-alert-circle" size="48" color="error" />
-            <span>Failed to load flow data.</span>
-        </div>
+        <!-- Main Flow View -->
+        <div v-if="!isLoading && !isError" class="flow-wrapper" ref="flowContainer">
+            <FlowToolbar 
+                :can-undo="canUndo" 
+                :can-redo="canRedo"
+                @undo="handleUndo"
+                @redo="handleRedo"
+            />
 
-        <div v-else class="flow-wrapper" ref="flowContainer">
-            <!-- Toolbar -->
-            <div class="toolbar">
-                <v-btn-group density="comfortable" variant="flat" class="toolbar-group">
-                    <v-btn
-                        :disabled="!canUndo"
-                        @click="handleUndo"
-                        icon="mdi-undo"
-                        title="Undo (Ctrl+Z)"
-                        size="small"
-                    />
-                    <v-btn
-                        :disabled="!canRedo"
-                        @click="handleRedo"
-                        icon="mdi-redo"
-                        title="Redo (Ctrl+Y)"
-                        size="small"
-                    />
-                </v-btn-group>
-            </div>
-
-            <!-- Keyboard shortcuts help -->
-            <div class="keyboard-help">
-                <v-icon size="14" class="mr-1">mdi-keyboard</v-icon>
-                Enter: Edit · Delete: Remove · Ctrl+Z/Y: Undo/Redo
-            </div>
+            <KeyboardHelp />
 
             <VueFlow
                 v-model:nodes="store.nodes"
@@ -392,64 +372,6 @@
     background: 
         radial-gradient(circle at 50% 50%, rgba(233, 30, 99, 0.02) 0%, transparent 70%),
         linear-gradient(to bottom, #fafafa, #f5f5f5);
-}
-
-/* Loading & Error states */
-.loading-state,
-.error-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-    gap: 16px;
-    color: #666;
-}
-
-.loading-text {
-    font-size: 14px;
-    color: #888;
-}
-
-/* Toolbar */
-.toolbar {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    z-index: 10;
-    display: flex;
-    gap: 12px;
-    align-items: center;
-}
-
-.toolbar-group {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-/* Keyboard help */
-.keyboard-help {
-    position: absolute;
-    bottom: 20px;
-    left: 20px;
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    padding: 8px 12px;
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(8px);
-    border-radius: 8px;
-    font-size: 11px;
-    color: #666;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    opacity: 0.7;
-    transition: opacity 0.2s;
-}
-
-.keyboard-help:hover {
-    opacity: 1;
 }
 
 /* Vue Flow overrides */

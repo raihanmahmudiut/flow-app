@@ -1,6 +1,7 @@
 <script setup>
 import { Handle, Position } from '@vue-flow/core'
 import { computed } from 'vue'
+import TrailingLine from './node/TrailingLine.vue'
 
 const props = defineProps(['data', 'selected'])
 
@@ -34,7 +35,6 @@ const nodeConfig = computed(() => {
             }
         case 'dateTimeConnector':
             return {
-                // No icon for connectors
                 bgColor: connectorType === 'success' ? '#e8f5e9' : '#ffebee',
                 borderColor: connectorType === 'success' ? '#4caf50' : '#f44336',
                 textColor: connectorType === 'success' ? '#2e7d32' : '#c62828'
@@ -101,8 +101,7 @@ const nodeDescription = computed(() => {
     return text.length > 40 ? text.substring(0, 40) + '...' : text
 })
 
-function handleAddChildNode(event) {
-    event.stopPropagation()
+function handleAddChildNode() {
     emit('add-child-node', { parentId: props.data.id })
 }
 </script>
@@ -110,7 +109,7 @@ function handleAddChildNode(event) {
 <template>
     <Handle type="target" :position="Position.Top" class="custom-handle" :style="{ backgroundColor: layerColor }" />
     
-    <!-- Connector Node (Success/Failure) - Simple text box -->
+    <!-- this is the connector node (Success/Failure) - Simple text box -->
     <div 
         v-if="isConnector"
         class="connector-node"
@@ -123,7 +122,7 @@ function handleAddChildNode(event) {
         <span class="connector-text">{{ nodeTitle }}</span>
     </div>
 
-    <!-- Regular Node -->
+    <!-- this is the regular node -->
     <div 
         v-else
         class="custom-node"
@@ -148,27 +147,12 @@ function handleAddChildNode(event) {
 
     <Handle type="source" :position="Position.Bottom" class="custom-handle" :style="{ backgroundColor: layerColor }" />
     
-    <!-- Trailing dashed line with plus button for leaf nodes -->
-    <div v-if="isLeaf" class="trailing-line-container">
-        <svg class="trailing-line" width="2" height="50" viewBox="0 0 2 50">
-            <line 
-                x1="1" y1="0" x2="1" y2="50" 
-                :stroke="layerColor" 
-                stroke-width="2" 
-                stroke-dasharray="4 4"
-            />
-        </svg>
-        <button 
-            class="trailing-add-button"
-            :style="{ backgroundColor: layerColor }"
-            @click="handleAddChildNode"
-            title="Add node here"
-        >
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                <path d="M5 1V9M1 5H9" stroke="white" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-        </button>
-    </div>
+    <!-- this is the trailing dashed line with plus button for leaf nodes -->
+    <TrailingLine 
+        v-if="isLeaf" 
+        :color="layerColor"
+        @add-node="handleAddChildNode"
+    />
 </template>
 
 <style scoped>
@@ -252,40 +236,5 @@ function handleAddChildNode(event) {
     height: 10px !important;
     border: 2px solid #fff !important;
     border-radius: 50% !important;
-}
-
-/* Trailing line with add button */
-.trailing-line-container {
-    position: absolute;
-    bottom: -60px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    z-index: 5;
-}
-
-.trailing-line {
-    display: block;
-}
-
-.trailing-add-button {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    border: 2px solid white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-    margin-top: -2px;
-}
-
-.trailing-add-button:hover {
-    transform: scale(1.15);
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
 }
 </style>

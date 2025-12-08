@@ -102,7 +102,6 @@ describe('NodeDrawer', () => {
       
       await flushPromises()
       
-      // Updated: Component now shows "Message:" label
       expect(wrapper.text()).toContain('Message')
     })
   })
@@ -190,8 +189,8 @@ describe('NodeDrawer', () => {
     })
   })
 
-  // Test 7: messageText Computed
-  describe('messageText Computed', () => {
+  // Test 7: editableMessage (local state populated from node data)
+  describe('editableMessage', () => {
     it('gets message text from payload', async () => {
       const wrapper = await mountDrawer('123', [
         { 
@@ -206,7 +205,7 @@ describe('NodeDrawer', () => {
       await flushPromises()
       
       const drawerComponent = wrapper.findComponent(NodeDrawer)
-      expect(drawerComponent.vm.messageText).toBe('Hello World')
+      expect(drawerComponent.vm.editableMessage).toBe('Hello World')
     })
 
     it('returns empty string when no payload', async () => {
@@ -217,7 +216,7 @@ describe('NodeDrawer', () => {
       await flushPromises()
       
       const drawerComponent = wrapper.findComponent(NodeDrawer)
-      expect(drawerComponent.vm.messageText).toBe('')
+      expect(drawerComponent.vm.editableMessage).toBe('')
     })
   })
 
